@@ -1,6 +1,6 @@
 {
-  "name": "cashid",
-  "version": "0.3.3",
+  "name": "@developers.cash/cashid-js",
+  "version": "0.3.4",
   "description": "JS implementation of CashID by Jonathan Silverblood",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paOol/CashID.git"
+    "url": "git+https://github.com/developers-cash/cashid-js.git"
   },
   "keywords": [
     "async",
@@ -21,10 +21,10 @@
   "author": "paOol",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/paOol/CashID/issues"
+    "url": "https://github.com/developers-cash/cashid-js/issues"
   },
-  "homepage": "https://github.com/paOol/CashID#readme",
+  "homepage": "https://github.com/developers-cash/cashid-js",
   "dependencies": {
-    "bitbox-sdk": "^8.10.1"
+    "bitbox-sdk": "^8.11.2"
   }
 }
