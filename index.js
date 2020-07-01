@@ -1,5 +1,5 @@
-const bitboxSDK = require('bitbox-sdk').BITBOX;
-const BITBOX = new bitboxSDK();
+const LibCash = require("@developers.cash/libcash-js")
+const libCash = new libCash()
 
 const statusCodes = {
   authenticationSuccessful: 0,
@@ -384,7 +384,7 @@ class CashID {
 
       // signature verification.
 
-      let verificationStatus = BITBOX.BitcoinCash.verifyMessage(
+      let verificationStatus = libCash.BitcoinCash.verifyMessage(
         responseObject['address'],
         responseObject['signature'],
         responseObject['request']

@@ -25,6 +25,6 @@
   },
   "homepage": "https://github.com/developers-cash/cashid-js",
   "dependencies": {
-    "bitbox-sdk": "^8.11.2"
+    "@developers.cash/libcash-js": "^0.9.5"
   }
 }
