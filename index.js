@@ -406,7 +406,6 @@ class CashID {
       for (const metadataName in parsedRequest['parameters']['required']) {
         // If the field was required && missing from the response..
         if (
-          metadataValue &&
           responseObject['metadata'][metadataName] === undefined
         ) {
           // Store it in the list of missing fields.
