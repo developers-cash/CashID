@@ -1,5 +1,5 @@
 const LibCash = require("@developers.cash/libcash-js")
-const libCash = new libCash()
+const libCash = new LibCash()
 
 const statusCodes = {
   authenticationSuccessful: 0,
