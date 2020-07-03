@@ -1,6 +1,6 @@
 {
   "name": "@developers.cash/cashid-js",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "JS implementation of CashID by Jonathan Silverblood",
   "main": "index.js",
   "scripts": {
