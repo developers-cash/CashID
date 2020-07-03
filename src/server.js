@@ -20,14 +20,14 @@ class Server {
       this._requests = {}
 
       this.adapter = {
-        store: (request, data) => {
-          this._requests[request] = data
+        store: (nonce, data) => {
+          this._requests[nonce] = data
         },
-        get: (request) => {
-          return this._requests[request]
+        get: (nonce) => {
+          return this._requests[nonce]
         },
-        remove: (request) => {
-          delete this._requests[request]
+        remove: (nonce) => {
+          delete this._requests[nonce]
         }
       }
     } else {
@@ -72,15 +72,16 @@ class Server {
     }
 
     // Set nonce
-    url.searchParams.set('x', Math.floor(Math.random() * (1 + 999999999 - 0)) + 0)
-
-    // Get URL string for request
-    const finalUrl = url.href
-
+    let nonce = Math.floor(Math.random() * (1 + 999999999 - 0)) + 0
+    url.searchParams.set('x', nonce)
+    
     // Store this request (with a timestamp)
-    this.adapter.store(finalUrl, { timestamp: new Date() })
+    this.adapter.store(nonce, {
+      request: url.href,
+      timestamp: new Date() 
+    })
 
-    return finalUrl
+    return url.href
   }
 
   /**
@@ -120,11 +121,30 @@ class Server {
 
     // Parse the request
     const parsed = CashID.parseRequest(payload.request)
+    
+    // Declare if user-initiated request and declare original request
+    let userInitiated = (parsed.action === 'auth')
+    let originalRequest;
 
-    // Make sure this request was created by us (and is non-tampered)
-    // (Only do this if it's not a user-initiated request)
-    if (parsed.action === 'auth' && !this.adapter.get(payload.request)) {
-      throw CashID._buildError('requestAltered')
+    // If this is NOT a user-initiated request (i.e. action is "auth")...
+    if (userInitiated) {
+      // Find the original based on nonce
+      originalRequest = this.adapter.get(parsed.nonce)
+      
+      // If it doesn't exist, throw error
+      if (!originalRequest) {
+        throw CashID._buildError('requestInvalidNonce')
+      }
+      
+      // If it's been altered, throw error
+      if (payload.request !== originalRequest.request) {
+        throw CashID._buildError('requestAltered')
+      }
+      
+      // If it's been consumed, throw error
+      if (originalRequest.consumed) {
+        throw CashID.buildError('requestConsumed')
+      }
     }
 
     // Validate signature
@@ -152,93 +172,17 @@ class Server {
       throw CashID._buildError('responseMissingMetadata', missingFields)
     }
 
-    // Mark this request as consumed by deleting it
-    this.adapter.remove(payload.request)
+    // Mark the original request as consumed
+    if (userInitiated) {
+      originalRequest.consumed = new Date()
+      this.adapter.store(payload.nonce, originalRequest)
+    }
 
     // If we made it through return success
     return {
       status: 0,
       message: 'Authentication successful'
     }
-  }
-
-  static parseRequest (requestURL) {
-    // Map of field codes to names
-    const map = {
-      identity: {
-        1: 'name',
-        2: 'family',
-        3: 'nickname',
-        4: 'age',
-        5: 'gender',
-        6: 'birthdate',
-        8: 'picture',
-        9: 'national'
-      },
-      position: {
-        1: 'country',
-        2: 'state',
-        3: 'city',
-        4: 'streetname',
-        5: 'streetnumber',
-        6: 'residence',
-        9: 'coordinates'
-      },
-      contact: {
-        1: 'email',
-        2: 'instant',
-        3: 'social',
-        4: 'phone',
-        5: 'postal'
-      }
-    }
-
-    // Parse the URL into parts
-    requestURL = new URL(requestURL)
-
-    // Make sure it's a CashID intent
-    if (requestURL.protocol.toLowerCase() !== 'cashid:') {
-      throw new Error('Request does not appear to be a CashID request')
-    }
-
-    // Define response object
-    const parsed = {
-      domain: requestURL.pathname.split('/')[0],
-      path: requestURL.pathname.split(/\/(.+)/)[1],
-      action: requestURL.searchParams.get('a') || 'auth',
-      required: requestURL.searchParams.get('r') || [],
-      optional: requestURL.searchParams.get('o') || [],
-      nonce: requestURL.searchParams.get('x') || null
-    }
-
-    // Parse the required and optional fields
-    for (const fieldStatus of ['optional', 'required']) {
-      // Create storage
-      const fields = []
-      let metadataType = ''
-
-      // Loop through each character
-      for (const char of parsed[fieldStatus]) {
-        // Set metadataType to identity and go to next character
-        if (char === 'i') { metadataType = 'identity'; continue }
-
-        // Set metadataType to position and go to next character
-        if (char === 'p') { metadataType = 'position'; continue }
-
-        // Set metadataType to contact and go to next character
-        if (char === 'c') { metadataType = 'contact'; continue }
-
-        // Make sure the field is valid and add it to list of required/optional
-        if (metadataType && map[metadataType][char]) {
-          fields.push(map[metadataType][char])
-        }
-      }
-
-      // Add fields to our parsed object
-      parsed[fieldStatus] = fields
-    }
-
-    return parsed
   }
 
   static _encodeFieldsAsString (fieldArray) {
