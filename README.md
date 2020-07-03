@@ -1,4 +1,4 @@
-# Javascript implementation of CashID by Jonathan Silverblood
+# CashID Javaascript
 
 ## Quick Pitch
 
@@ -8,63 +8,50 @@ This is a convenient way to login and sign up to websites using Bitcoin Cash as 
 
 CashID is an open protocol that allows secure authentication based on the public key cryptography infrastructure that is currently present in the Bitcoin Cash ecosystem. Each user can prove to a service provider that they control a specific Bitcoin Cash address by signing a challenge request, as well as provide optional metadata.
 
+The typical flow might look as follows:
+
+1. Request URI is generated and presented as Link and QR Code.
+2. Event Listener is created on page to listen for Authentication Event (Google "Server-side-events", aka SSE)
+3. User scans this QR Code using his Identity Manager and grants consent to the requested fields
+4. Identity Manager sends payload to endpoint contained in Request URI
+5. SSE endpoint sends event (or authentication tokens) to browser upon receiving valid payload.
+
 ## Installation
 
 grab from NPM
 
-```
-  npm i cashid
+```sh
+npm install cashid
 ```
 
 ## Usage
 
+A typical implementation might look as follows:
+
+```javascript
+const CashIDServer = require('cashid').Server
+
+// Instantiate server
+const cashID = new CashIDServer("your.host.com", '/cashid/auth')
+
+//
+// Route: /cashid/create-request
+//
+const uri = cashID.createRequest("auth", {
+  required: ['name', 'family', 'email']
+})
+
+return uri
+
+//
+// Route: /cashid/auth
+//
+return cashID.validateRequest(payload)
+
+//
+// Route: /cashid/events (recommend to implement using SSE)
+//
 ```
-import CashID from 'cashid'; // or const CashID = require('cashid');
-
-const cashid = new CashID();
-
-// or if using your own server
-// const cashid = new CashID(domain, path);
-// domain = something.com  (no http prefix)
-// path = /api/auth  (endpoint that will receive POST json data)
-
-const uri = cashid.createRequest(action, data, metadata);
-
-// action is an optional string, ie: 'login'
-// data is an optional string, ie: 'newsletter' or '123-123-123'
-// metadata is an optional object, ie:
-//  {
-//      required: {
-//        identity: ['name', 'family'],
-//        position: ['country'],
-//        contact: ['email']
-//      },
-//      optional: {
-//        identity: ['age', 'gender'],
-//        position: ['city']
-//      }
-//  }
-
-return uri;
-
-// uri will look like
-
-// cashid:example.com/api/auth?a=register&d=newsletter&r=i12p1c1&o=i45p3&x=142341090
-```
-
-with the uri, you can generate a QR code for the user to scan, or see a client side [badger-wallet implementation](https://github.com/paOol/react-cashid)
-
-The identity manager would read the cashid uri, and send a JSON POST request to the endpoint.
-
-You would validate the object on the server side and return true as the response if valid.
-
-## Available Methods
-
-`cashid.validateRequest(responseObject)`
-
-`cashid.parseCashIDRequest(requestURI)`
-
-`cashid.createRequest(action, data, metadata)`
 
 ### Resources
 
