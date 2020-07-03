@@ -8,9 +8,12 @@
     "format": "eslint ./ --fix",
     "prepublishOnly": "npm run lint",
     "preversion": "npm run lint",
-    "version": "npm run format && git add -A src",
+    "version": "npm run format && npm run test && git add -A src",
     "postversion": "git push && git push --tags",
     "test": "mocha test"
+  },
+  "exports": {
+    "./": "./src"
   },
   "repository": {
     "type": "git",
