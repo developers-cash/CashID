@@ -72,13 +72,13 @@ class Server {
     }
 
     // Set nonce
-    let nonce = Math.floor(Math.random() * (1 + 999999999 - 0)) + 0
+    const nonce = Math.floor(Math.random() * (1 + 999999999 - 0)) + 0
     url.searchParams.set('x', nonce)
-    
+
     // Store this request (with a timestamp)
     this.adapter.store(nonce, {
       request: url.href,
-      timestamp: new Date() 
+      timestamp: new Date()
     })
 
     return url.href
@@ -121,26 +121,26 @@ class Server {
 
     // Parse the request
     const parsed = CashID.parseRequest(payload.request)
-    
+
     // Declare if user-initiated request and declare original request
-    let userInitiated = (parsed.action === 'auth')
-    let originalRequest;
+    const userInitiated = (parsed.action === 'auth')
+    let originalRequest
 
     // If this is NOT a user-initiated request (i.e. action is "auth")...
     if (userInitiated) {
       // Find the original based on nonce
       originalRequest = this.adapter.get(parsed.nonce)
-      
+
       // If it doesn't exist, throw error
       if (!originalRequest) {
         throw CashID._buildError('requestInvalidNonce')
       }
-      
+
       // If it's been altered, throw error
       if (payload.request !== originalRequest.request) {
         throw CashID._buildError('requestAltered')
       }
-      
+
       // If it's been consumed, throw error
       if (originalRequest.consumed) {
         throw CashID.buildError('requestConsumed')
