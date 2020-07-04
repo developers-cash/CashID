@@ -76,7 +76,7 @@ class CashIDServer {
     url.searchParams.set('x', nonce)
 
     // Store this request (with a timestamp)
-    let storedRequest = {
+    const storedRequest = {
       request: url.href,
       timestamp: new Date()
     }
