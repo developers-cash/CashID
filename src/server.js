@@ -178,6 +178,7 @@ class CashIDServer {
     // Mark the original request as consumed
     if (!userInitiated) {
       originalRequest.consumed = new Date()
+      originalRequest.payload = payload
       this.adapter.store(payload.nonce, originalRequest)
     }
 
