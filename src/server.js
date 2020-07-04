@@ -5,7 +5,7 @@ const CashID = require('./cashid')
 const LibCash = require('@developers.cash/libcash-js')
 const libCash = new LibCash()
 
-class Server {
+class CashIDServer {
   /**
    * constructor
    *
@@ -63,12 +63,12 @@ class Server {
 
     // Set required fields (only if given)
     if (metadata.required) {
-      url.searchParams.set('r', Server._encodeFieldsAsString(metadata.required))
+      url.searchParams.set('r', CashIDServer._encodeFieldsAsString(metadata.required))
     }
 
     // Set optional fields (only if given)
     if (metadata.optional) {
-      url.searchParams.set('o', Server._encodeFieldsAsString(metadata.optional))
+      url.searchParams.set('o', CashIDServer._encodeFieldsAsString(metadata.optional))
     }
 
     // Set nonce
@@ -81,7 +81,10 @@ class Server {
       timestamp: new Date()
     })
 
-    return url.href
+    return {
+      url: url.href,
+      nonce: nonce
+    }
   }
 
   /**
@@ -123,11 +126,11 @@ class Server {
     const parsed = CashID.parseRequest(payload.request)
 
     // Declare if user-initiated request and declare original request
-    const userInitiated = (parsed.action === 'auth')
+    const userInitiated = !['auth', 'login'].includes(parsed.action)
     let originalRequest
 
     // If this is NOT a user-initiated request (i.e. action is "auth")...
-    if (userInitiated) {
+    if (!userInitiated) {
       // Find the original based on nonce
       originalRequest = this.adapter.get(parsed.nonce)
 
@@ -173,7 +176,7 @@ class Server {
     }
 
     // Mark the original request as consumed
-    if (userInitiated) {
+    if (!userInitiated) {
       originalRequest.consumed = new Date()
       this.adapter.store(payload.nonce, originalRequest)
     }
@@ -181,7 +184,8 @@ class Server {
     // If we made it through return success
     return {
       status: 0,
-      message: 'Authentication successful'
+      message: 'Authentication successful',
+      nonce: parsed.nonce
     }
   }
 
@@ -239,4 +243,4 @@ class Server {
   }
 }
 
-module.exports = Server
+module.exports = CashIDServer

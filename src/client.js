@@ -3,7 +3,7 @@ const CashID = require('./cashid')
 const LibCash = require('@developers.cash/libcash-js')
 const libCash = new LibCash()
 
-class Client {
+class CashIDClient {
   static parseRequest (requestURL) {
     return CashID.parseRequest(requestURL)
   }
@@ -46,4 +46,4 @@ class Client {
   }
 }
 
-module.exports = Client
+module.exports = CashIDClient
