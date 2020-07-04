@@ -3,6 +3,9 @@
   "version": "0.7.1",
   "description": "JS implementation of CashID by Jonathan Silverblood",
   "main": "index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
   "scripts": {
     "lint": "eslint ./",
     "format": "eslint ./ --fix",
@@ -11,9 +14,6 @@
     "version": "npm run format && npm run test && git add -A src",
     "postversion": "git push && git push --tags",
     "test": "mocha test"
-  },
-  "exports": {
-    "./": "./src"
   },
   "repository": {
     "type": "git",
