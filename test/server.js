@@ -9,7 +9,7 @@ describe('# Server', function () {
   
   describe('# createRequest', () => {
     it('Should not throw error if valid request', () => {
-      const request = server.createRequest('auth', {
+      const cashIDRequest = server.createRequest('auth', {
         required: ['name', 'family', 'nickname', 'email'],
         optional: ['country', 'state']
       })
@@ -18,11 +18,11 @@ describe('# Server', function () {
 
   describe('# validateRequest', () => {
     it('Should not throw error if valid response', () => {
-      const request = server.createRequest('auth', {
+      const cashIDRequest = server.createRequest('auth', {
         required: ['name']
       })
 
-      const payload = Client.createResponse(request.url, {
+      const payload = Client.createResponse(cashIDRequest.request, {
         name: 'firstname'
       }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
 
@@ -30,11 +30,11 @@ describe('# Server', function () {
     })
 
     it('Should throw error if signature invalid', () => {
-      const request = server.createRequest('auth', {
+      const cashIDRequest = server.createRequest('auth', {
         required: ['name']
       })
 
-      const payload = Client.createResponse(request.url, {
+      const payload = Client.createResponse(cashIDRequest.request, {
         name: 'firstname'
       }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
 
@@ -47,12 +47,12 @@ describe('# Server', function () {
     })
     
     it('Should throw error if nonce does not match', () => {
-      const request = server.createRequest('auth', {
+      const cashIDRequest = server.createRequest('auth', {
         required: ['name']
       })
       
       // Change the nonce
-      let modifiedRequest = new URL(request.url)
+      let modifiedRequest = new URL(cashIDRequest.request)
       modifiedRequest.searchParams.set('x', '1000000')
 
       const payload = Client.createResponse(modifiedRequest.href, {
@@ -65,11 +65,11 @@ describe('# Server', function () {
     })
     
     it('Should throw error if request already consumed', () => {
-      const request = server.createRequest('auth', {
+      const cashIDRequest = server.createRequest('auth', {
         required: ['name']
       })
 
-      const payload = Client.createResponse(request.url, {
+      const payload = Client.createResponse(cashIDRequest.request, {
         name: 'firstname'
       }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
 
@@ -85,11 +85,11 @@ describe('# Server', function () {
     it('Should throw error if required field missing', () => {
       const server = new Server('test', 'test')
 
-      const request = server.createRequest('auth', {
+      const cashIDRequest = server.createRequest('auth', {
         required: ['name', 'family']
       })
 
-      const payload = Client.createResponse(request.url, {
+      const payload = Client.createResponse(cashIDRequest.request, {
         name: 'firstname',
         family: 'lastname'
       }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')

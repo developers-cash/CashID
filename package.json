@@ -4,7 +4,8 @@
   "description": "JS implementation of CashID by Jonathan Silverblood",
   "main": "index.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./": "./src/"
   },
   "scripts": {
     "lint": "eslint ./",

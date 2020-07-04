@@ -76,15 +76,15 @@ class CashIDServer {
     url.searchParams.set('x', nonce)
 
     // Store this request (with a timestamp)
-    this.adapter.store(nonce, {
+    let storedRequest = {
       request: url.href,
       timestamp: new Date()
-    })
-
-    return {
-      url: url.href,
-      nonce: nonce
     }
+    this.adapter.store(nonce, storedRequest)
+
+    return Object.assign({
+      nonce: nonce
+    }, storedRequest)
   }
 
   /**
@@ -127,26 +127,26 @@ class CashIDServer {
 
     // Declare if user-initiated request and declare original request
     const userInitiated = !['auth', 'login'].includes(parsed.action)
-    let originalRequest
+    let storedRequest
 
     // If this is NOT a user-initiated request (i.e. action is "auth")...
     if (!userInitiated) {
       // Find the original based on nonce
-      originalRequest = this.adapter.get(parsed.nonce)
+      storedRequest = this.adapter.get(parsed.nonce)
 
       // If it doesn't exist, throw error
-      if (!originalRequest) {
+      if (!storedRequest) {
         throw CashID._buildError('requestInvalidNonce')
       }
 
       // If it's been altered, throw error
-      if (payload.request !== originalRequest.request) {
+      if (payload.request !== storedRequest.request) {
         throw CashID._buildError('requestAltered')
       }
 
       // If it's been consumed, throw error
-      if (originalRequest.consumed) {
-        throw CashID.buildError('requestConsumed')
+      if (storedRequest.consumed) {
+        throw CashID._buildError('requestConsumed')
       }
     }
 
@@ -177,17 +177,16 @@ class CashIDServer {
 
     // Mark the original request as consumed
     if (!userInitiated) {
-      originalRequest.consumed = new Date()
-      originalRequest.payload = payload
-      this.adapter.store(payload.nonce, originalRequest)
+      storedRequest.status = 0
+      storedRequest.consumed = new Date()
+      storedRequest.payload = payload
+      this.adapter.store(payload.nonce, storedRequest)
     }
 
     // If we made it through return success
-    return {
-      status: 0,
-      message: 'Authentication successful',
+    return Object.assign({
       nonce: parsed.nonce
-    }
+    }, storedRequest)
   }
 
   static _encodeFieldsAsString (fieldArray) {
