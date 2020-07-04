@@ -104,22 +104,22 @@ class CashIDServer {
   validateRequest (payload) {
     // Make sure payload is JSON
     if (typeof payload !== 'object') {
-      throw CashID._buildError('responseBroken')
+      throw CashID._buildError('ResponseBroken')
     }
 
     // Make sure payload contains request
     if (!payload.request) {
-      throw CashID._buildError('responseMissingRequest')
+      throw CashID._buildError('ResponseMissingRequest')
     }
 
     // Make sure payload contains an address
     if (!payload.address) {
-      throw CashID._buildError('responseMissingAddress')
+      throw CashID._buildError('ResponseMissingAddress')
     }
 
     // Make sure payload contains an address
     if (!payload.signature) {
-      throw CashID._buildError('responseMissingSignature')
+      throw CashID._buildError('ResponseMissingSignature')
     }
 
     // Parse the request
@@ -136,17 +136,17 @@ class CashIDServer {
 
       // If it doesn't exist, throw error
       if (!storedRequest) {
-        throw CashID._buildError('requestInvalidNonce')
+        throw CashID._buildError('RequestInvalidNonce')
       }
 
       // If it's been altered, throw error
       if (payload.request !== storedRequest.request) {
-        throw CashID._buildError('requestAltered')
+        throw CashID._buildError('RequestAltered')
       }
 
       // If it's been consumed, throw error
       if (storedRequest.consumed) {
-        throw CashID._buildError('requestConsumed')
+        throw CashID._buildError('RequestConsumed')
       }
     }
 
@@ -158,7 +158,7 @@ class CashIDServer {
     )
 
     if (!sigValid) {
-      throw CashID._buildError('responseInvalidSignature')
+      throw CashID._buildError('ResponseInvalidSignature')
     }
 
     // Ensure that all required fields are present
@@ -172,7 +172,7 @@ class CashIDServer {
     }
 
     if (missingFields.length) {
-      throw CashID._buildError('responseMissingMetadata', missingFields)
+      throw CashID._buildError('ResponseMissingMetadata', missingFields)
     }
 
     // Mark the original request as consumed

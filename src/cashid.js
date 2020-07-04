@@ -82,42 +82,53 @@ class CashID {
 
   static _buildError (type, contextData = null) {
     const statusCodes = {
-      authenticationSuccessful: 0,
-      requestBroken: 100,
-      requestMissingScheme: 111,
-      requestMissingDomain: 112,
-      requestMissingNonce: 113,
-      requestMalformedScheme: 121,
-      requestMalformedDomain: 122,
-      requestInvalidDomain: 131,
-      requestInvalidNonce: 132,
-      requestAltered: 141,
-      requestExpired: 142,
-      requestConsumed: 143,
-      responseBroken: 200,
-      responseMissingRequest: 211,
-      responseMissingAddress: 212,
-      responseMissingSignature: 213,
-      responseMissingMetadata: 214,
-      responseMalformedAddress: 221,
-      responseMalformedSignature: 222,
-      responseMalformedMetadata: 223,
-      responseInvalidMethod: 231,
-      responseInvalidAddress: 232,
-      responseInvalidSignature: 233,
-      responseInvalidMetadata: 234,
-      serviceBroken: 300,
-      serviceAddressDenied: 311,
-      serviceAddressRevoked: 312,
-      serviceActionDenied: 321,
-      serviceActionUnavailable: 322,
-      serviceActionNotImplemented: 323,
-      serviceInternalError: 331
+      AuthenticationSuccessful: 0,
+      RequestBroken: 100,
+      RequestMissingScheme: 111,
+      RequestMissingDomain: 112,
+      RequestMissingNonce: 113,
+      RequestMalformedScheme: 121,
+      RequestMalformedDomain: 122,
+      RequestInvalidDomain: 131,
+      RequestInvalidNonce: 132,
+      RequestAltered: 141,
+      RequestExpired: 142,
+      RequestConsumed: 143,
+      ResponseBroken: 200,
+      ResponseMissingRequest: 211,
+      ResponseMissingAddress: 212,
+      ResponseMissingSignature: 213,
+      ResponseMissingMetadata: 214,
+      ResponseMalformedAddress: 221,
+      ResponseMalformedSignature: 222,
+      ResponseMalformedMetadata: 223,
+      ResponseInvalidMethod: 231,
+      ResponseInvalidAddress: 232,
+      ResponseInvalidSignature: 233,
+      ResponseInvalidMetadata: 234,
+      ServiceBroken: 300,
+      ServiceAddressDenied: 311,
+      ServiceAddressRevoked: 312,
+      ServiceActionDenied: 321,
+      ServiceActionUnavailable: 322,
+      ServiceActionNotImplemented: 323,
+      ServiceInternalError: 331
     }
 
+    // Convert error name into human readable
     const humanReadable = type.split(/(?<=[a-z])(?=[A-Z])/).join(' ').toLowerCase()
-
-    return new Error(`${statusCodes[type]}: ${humanReadable}`)
+    let message = `Error ${statusCodes[type]}: ${humanReadable}`
+    
+    // If this is "responseMissingMetadata", list the fields
+    if (contextData) {
+      message += `: ${contextData.join(' ')}`
+    }
+    
+    // Create the error and the name
+    let error = new Error(message)
+    error.name = type;
+    
+    return error
   }
 }
 

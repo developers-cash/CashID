@@ -43,10 +43,12 @@ describe('# Server', function () {
 
       assert.throws(() => {
         server.validateRequest(payload)
-      }, Error)
+      }, {
+        name: 'ResponseInvalidSignature'
+      })
     })
     
-    it('Should throw error if nonce does not match', () => {
+    it('Should throw error if nonce does not exist', () => {
       const cashIDRequest = server.createRequest('auth', {
         required: ['name']
       })
@@ -61,7 +63,9 @@ describe('# Server', function () {
 
       assert.throws(() => {
         server.validateRequest(payload)
-      }, Error)
+      }, {
+        name: 'RequestInvalidNonce'
+      })
     })
     
     it('Should throw error if request already consumed', () => {
@@ -79,7 +83,9 @@ describe('# Server', function () {
       // Then try resending
       assert.throws(() => {
         server.validateRequest(payload)
-      }, Error)
+      }, {
+        name: 'RequestConsumed'
+      })
     })
 
     it('Should throw error if required field missing', () => {
@@ -99,7 +105,9 @@ describe('# Server', function () {
       
       assert.throws(() => {
         server.validateRequest(payload)
-      }, Error)
+      }, { 
+        name: 'ResponseMissingMetadata'
+      })
     })
   })
 })
