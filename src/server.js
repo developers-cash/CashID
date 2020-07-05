@@ -15,7 +15,7 @@ class CashIdServer {
    * @example
    * // Using Memory storage adapter
    * let cashId = new CashIDServer('cashid.infra.cash', '/api/auth')
-   * 
+   *
    * // Using Redis storage adapter (Use, for example, if behind load-balancer)
    * // let redisClient = redis.createClient()
    * let cashId = new CashIDServer('cashid.infra.cash', '/api/auth', redisClient)
@@ -25,7 +25,7 @@ class CashIdServer {
     this.path = path || '/api/auth'
 
     if (!adapter) {
-      this._requests = new Map;
+      this._requests = new Map()
 
       this.adapter = {
         set: (nonce, data) => {
@@ -54,7 +54,7 @@ class CashIdServer {
    *   required: ['name', 'family'],
    *   optional: ['country']
    * })
-   * 
+   *
    * // {
    * //   nonce: 982827894,
    * //   request: "cashid:cashid.infra.cash/api/auth?a=auth&r=i2&o=p1&x=982827894",
@@ -137,7 +137,7 @@ class CashIdServer {
     if (!payload.address) {
       throw Common._buildError('ResponseMissingAddress')
     }
-    
+
     // Make sure the address is a CashAddr
     try {
       libCash.Address.isCashAddress(payload.address)
@@ -205,7 +205,7 @@ class CashIdServer {
 
     // Mark the original request as consumed
     if (!userInitiated) {
-      storedRequest.status = Common.StatusCodes['AuthenticationSuccessful']
+      storedRequest.status = Common.StatusCodes.AuthenticationSuccessful
       storedRequest.consumed = new Date()
       storedRequest.payload = payload
       this.adapter.set(payload.nonce, storedRequest)

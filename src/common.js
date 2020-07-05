@@ -32,7 +32,7 @@ class Common {
     ServiceActionNotImplemented: 323,
     ServiceInternalError: 331
   }
-  
+
   static parseRequest (requestURL) {
     // Map of field codes to names
     const map = {
@@ -118,16 +118,16 @@ class Common {
     // Convert error name into human readable
     const humanReadable = type.split(/(?<=[a-z])(?=[A-Z])/).join(' ').toLowerCase()
     let message = `Error ${Common.StatusCodes[type]}: ${humanReadable}`
-    
+
     // If this is "responseMissingMetadata", list the fields
     if (contextData) {
       message += `: ${contextData.join(' ')}`
     }
-    
+
     // Create the error and the name
-    let error = new Error(message)
-    error.name = type;
-    
+    const error = new Error(message)
+    error.name = type
+
     return error
   }
 }
