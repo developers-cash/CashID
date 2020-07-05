@@ -1,11 +1,11 @@
-const CashID = require('./cashid')
+const Common = require('./common')
 
 const LibCash = require('@developers.cash/libcash-js')
 const libCash = new LibCash()
 
-class CashIDClient {
+class CashIdClient {
   static parseRequest (requestURL) {
-    return CashID.parseRequest(requestURL)
+    return Common.parseRequest(requestURL)
   }
 
   static createResponse (requestURL, metadata, wif = null) {
@@ -18,7 +18,7 @@ class CashIDClient {
     }
 
     // Parse the request
-    const parsed = CashID.parseRequest(requestURL)
+    const parsed = Common.parseRequest(requestURL)
 
     // Make sure all required fields are present
     const missingFields = []
@@ -46,4 +46,4 @@ class CashIDClient {
   }
 }
 
-module.exports = CashIDClient
+module.exports = CashIdClient

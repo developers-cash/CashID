@@ -1,8 +1,8 @@
 const assert = require('assert')
 
-const CashID = require('../src/cashid')
+const Common = require('../src/common')
 
-describe('# CashID', function () {
+describe('# Common', function () {
   describe('# parseRequest', () => {
     it('Should not throw error on valid CashID requests', () => {
       const requests = [
@@ -12,7 +12,7 @@ describe('# CashID', function () {
       ]
 
       for (const request of requests) {
-        CashID.parseRequest(request)
+        Common.parseRequest(request)
       }
     })
 
@@ -26,7 +26,7 @@ describe('# CashID', function () {
       ]
 
       assert.throws(() => {
-        CashID.parseRequest(request)
+        Common.parseRequest(request)
       }, Error)
     })
   })

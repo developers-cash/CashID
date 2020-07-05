@@ -1,9 +1,9 @@
-const CashID = require('./cashid')
-const CashIDServer = require('./server')
-const CashIDClient = require('./client')
+const Common = require('./common')
+const CashIdServer = require('./server')
+const CashIdClient = require('./client')
 
 module.exports = {
-  CashID,
-  CashIDServer,
-  CashIDClient
+  Common,
+  CashIdServer,
+  CashIdClient
 }

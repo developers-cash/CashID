@@ -7,6 +7,9 @@
     ".": "./src/index.js",
     "./": "./src/"
   },
+  "files": [
+    "src/**/*"
+  ],
   "scripts": {
     "lint": "eslint ./",
     "format": "eslint ./ --fix",
@@ -28,7 +31,7 @@
     "bch",
     "javascript"
   ],
-  "author": "paOol",
+  "author": "jimtendo",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/developers-cash/cashid-js/issues"
@@ -38,7 +41,7 @@
     "@developers.cash/libcash-js": "^0.9.5"
   },
   "devDependencies": {
-    "eslint": "^7.1.0",
+    "eslint": "^7.4.0",
     "eslint-config-standard": "^14.1.1",
     "eslint-plugin-import": "^2.20.2",
     "eslint-plugin-node": "^11.1.0",

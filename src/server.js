@@ -1,32 +1,40 @@
 const URL = require('url').URL
 
-const CashID = require('./cashid')
+const Common = require('./common')
 
 const LibCash = require('@developers.cash/libcash-js')
 const libCash = new LibCash()
 
-class CashIDServer {
+class CashIdServer {
   /**
    * constructor
    *
-   * @param {String} domain - dont include http/https in front
-   * @param {String} path - api endpoint ie "/api/test"
+   * @param {String} domain - Dont include http/https in front
+   * @param {String} path - API endpoint ie "/api/test"
+   * @param {Object} adapter - Storage adapter (default uses memory)
+   * @example
+   * // Using Memory storage adapter
+   * let cashId = new CashIDServer('cashid.infra.cash', '/api/auth')
+   * 
+   * // Using Redis storage adapter (Use, for example, if behind load-balancer)
+   * // let redisClient = redis.createClient()
+   * let cashId = new CashIDServer('cashid.infra.cash', '/api/auth', redisClient)
    */
   constructor (domain, path, adapter = null) {
     this.domain = domain || 'auth.cashid.org'
     this.path = path || '/api/auth'
 
     if (!adapter) {
-      this._requests = {}
+      this._requests = new Map;
 
       this.adapter = {
-        store: (nonce, data) => {
+        set: (nonce, data) => {
           this._requests[nonce] = data
         },
         get: (nonce) => {
           return this._requests[nonce]
         },
-        remove: (nonce) => {
+        del: (nonce) => {
           delete this._requests[nonce]
         }
       }
@@ -36,18 +44,23 @@ class CashIDServer {
   }
 
   /**
-   * Validates a payload sent by an Identity Manager
+   * Creates a CashID request
    *
-   * @param {Object} payload - example looks like
-   *
-   *  let responseObject = {
-   *    request:
-   *      'cashid:demo.cashid.info/api/parse.php?a=login&d=15366-4133-6141-9638&o=i3&x=557579911',
-   *    address: 'qpaf03cxjstfc42we3480f4vtznw4356jsn27r5cs3',
-   *    signature:'H3hCOFaVnzCz5SyN+Rm9NO+wsLtW4G9S8kLu9Xf8bjoJC3eR9sMdWqS+BJMW5/6yMJBrS+hkNDd41bYPuP3eLY0=',
-   *    metadata: []
-   *  };
-   * @returns {Object} returns parsed request
+   * @param {String} action - The action to be performed (e.g. "auth", "login", etce
+   * @param {Object} metadata - The metadata being requested
+   * @param {String} data - Additional data to pass sign
+   * @example
+   * let cashIdReq = cashId.createRequest('auth', {
+   *   required: ['name', 'family'],
+   *   optional: ['country']
+   * })
+   * 
+   * // {
+   * //   nonce: 982827894,
+   * //   request: "cashid:cashid.infra.cash/api/auth?a=auth&r=i2&o=p1&x=982827894",
+   * //   timestamp: 2020-07-05T01:17:56.034Z
+   * // }
+   * @returns {Object} Data that was stored in adapter
    */
   createRequest (action = 'auth', metadata = {}, data = '') {
     // Create URL for holding request
@@ -63,12 +76,12 @@ class CashIDServer {
 
     // Set required fields (only if given)
     if (metadata.required) {
-      url.searchParams.set('r', CashIDServer._encodeFieldsAsString(metadata.required))
+      url.searchParams.set('r', CashIdServer._encodeFieldsAsString(metadata.required))
     }
 
     // Set optional fields (only if given)
     if (metadata.optional) {
-      url.searchParams.set('o', CashIDServer._encodeFieldsAsString(metadata.optional))
+      url.searchParams.set('o', CashIdServer._encodeFieldsAsString(metadata.optional))
     }
 
     // Set nonce
@@ -80,7 +93,7 @@ class CashIDServer {
       request: url.href,
       timestamp: new Date()
     }
-    this.adapter.store(nonce, storedRequest)
+    this.adapter.set(nonce, storedRequest)
 
     return Object.assign({
       nonce: nonce
@@ -88,42 +101,57 @@ class CashIDServer {
   }
 
   /**
-   * Validates a payload sent by an Identity Manager
+   * Validates a CashID request
    *
-   * @param {Object} payload - example looks like
+   * @param {Object} payload - The JSON payload sent by the Identity Manager
+   * @example
+   * let cashIdRes = cashId.validateRequest(payload)
    *
-   *  let responseObject = {
-   *    request:
-   *      'cashid:demo.cashid.info/api/parse.php?a=login&d=15366-4133-6141-9638&o=i3&x=557579911',
-   *    address: 'qpaf03cxjstfc42we3480f4vtznw4356jsn27r5cs3',
-   *    signature:'H3hCOFaVnzCz5SyN+Rm9NO+wsLtW4G9S8kLu9Xf8bjoJC3eR9sMdWqS+BJMW5/6yMJBrS+hkNDd41bYPuP3eLY0=',
-   *    metadata: []
-   *  };
-   * @returns {Object} returns parsed request
+   * // {
+   * //   nonce: '554077219',
+   * //   request: 'cashid:cashid.infra.cash/api/auth?a=auth&r=i1&x=554077219',
+   * //   timestamp: 2020-07-05T01:22:28.796Z,
+   * //   status: 0,
+   * //   consumed: 2020-07-05T01:22:28.911Z,
+   * //   payload: {
+   * //     request: 'cashid:cashid.infra.cash/api/auth?a=auth&r=i1&x=554077219',
+   * //     address: 'bitcoincash:qz9nq206kteyv2t7trhdr4vzzkej60kqtytn7sxkxm',
+   * //     signature: 'IL41BZR+KrcFr1I7iiYYt9XzekcIQ9jM1DTBKAfVwgJCc70n3+M0lokUxX18AmVSpyBtsBSO5kv5YtwRIiQ/650=',
+   * //     metadata: { name: 'firstname' }
+   * //   }
+   * // }
+   * @returns {Object} Data that was stored in adapter
    */
   validateRequest (payload) {
     // Make sure payload is JSON
     if (typeof payload !== 'object') {
-      throw CashID._buildError('ResponseBroken')
+      throw Common._buildError('ResponseBroken')
     }
 
     // Make sure payload contains request
     if (!payload.request) {
-      throw CashID._buildError('ResponseMissingRequest')
+      throw Common._buildError('ResponseMissingRequest')
     }
 
     // Make sure payload contains an address
     if (!payload.address) {
-      throw CashID._buildError('ResponseMissingAddress')
+      throw Common._buildError('ResponseMissingAddress')
+    }
+    
+    // Make sure the address is a CashAddr
+    try {
+      libCash.Address.isCashAddress(payload.address)
+    } catch (err) {
+      throw Common._buildError('ResponseMalformedAddress')
     }
 
     // Make sure payload contains an address
     if (!payload.signature) {
-      throw CashID._buildError('ResponseMissingSignature')
+      throw Common._buildError('ResponseMissingSignature')
     }
 
     // Parse the request
-    const parsed = CashID.parseRequest(payload.request)
+    const parsed = Common.parseRequest(payload.request)
 
     // Declare if user-initiated request and declare original request
     const userInitiated = !['auth', 'login'].includes(parsed.action)
@@ -136,17 +164,17 @@ class CashIDServer {
 
       // If it doesn't exist, throw error
       if (!storedRequest) {
-        throw CashID._buildError('RequestInvalidNonce')
+        throw Common._buildError('RequestInvalidNonce')
       }
 
       // If it's been altered, throw error
       if (payload.request !== storedRequest.request) {
-        throw CashID._buildError('RequestAltered')
+        throw Common._buildError('RequestAltered')
       }
 
       // If it's been consumed, throw error
       if (storedRequest.consumed) {
-        throw CashID._buildError('RequestConsumed')
+        throw Common._buildError('RequestConsumed')
       }
     }
 
@@ -158,7 +186,7 @@ class CashIDServer {
     )
 
     if (!sigValid) {
-      throw CashID._buildError('ResponseInvalidSignature')
+      throw Common._buildError('ResponseInvalidSignature')
     }
 
     // Ensure that all required fields are present
@@ -172,15 +200,15 @@ class CashIDServer {
     }
 
     if (missingFields.length) {
-      throw CashID._buildError('ResponseMissingMetadata', missingFields)
+      throw Common._buildError('ResponseMissingMetadata', missingFields)
     }
 
     // Mark the original request as consumed
     if (!userInitiated) {
-      storedRequest.status = 0
+      storedRequest.status = Common.StatusCodes['AuthenticationSuccessful']
       storedRequest.consumed = new Date()
       storedRequest.payload = payload
-      this.adapter.store(payload.nonce, storedRequest)
+      this.adapter.set(payload.nonce, storedRequest)
     }
 
     // If we made it through return success
@@ -243,4 +271,4 @@ class CashIDServer {
   }
 }
 
-module.exports = CashIDServer
+module.exports = CashIdServer
