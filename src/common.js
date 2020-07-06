@@ -114,19 +114,20 @@ class Common {
     return parsed
   }
 
-  static _buildError (type, contextData = null) {
+  static _buildError (type, contextData = {}) {
     // Convert error name into human readable
-    const humanReadable = type.split(/(?<=[a-z])(?=[A-Z])/).join(' ').toLowerCase()
+    const humanReadable = type.split(/(?<=[a-z])(?=[A-Z])/).join(' ')
     let message = `Error ${Common.StatusCodes[type]}: ${humanReadable}`
 
     // If this is "responseMissingMetadata", list the fields
-    if (contextData) {
-      message += `: ${contextData.join(' ')}`
+    if (contextData.fields) {
+      message += `: ${contextData.fields.join(' ')}`
     }
 
     // Create the error and the name
     const error = new Error(message)
     error.name = type
+    error.nonce = contextData.nonce
 
     return error
   }

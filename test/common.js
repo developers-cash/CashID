@@ -3,8 +3,8 @@ const assert = require('assert')
 const Common = require('../src/common')
 
 describe('# Common', function () {
-  describe('# parseRequest', () => {
-    it('Should not throw error on valid CashID requests', () => {
+  describe('# parseRequest', function() {
+    it('Should not throw error on valid CashID requests', function() {
       const requests = [
         'cashid:cashid.infra.cash/api/auth?a=auth&d=&r=i12345689p1234569c12345&x=135621001', // All fields required
         'cashid:cashid.infra.cash/api/auth?a=auth&d=&o=i12345689p1234569c12345&x=135621002', // All fields optional
@@ -16,7 +16,7 @@ describe('# Common', function () {
       }
     })
 
-    it('Should throw errors if invalid requests', () => {
+    it('Should throw errors if invalid requests', function() {
       const requests = [
         'bitid:cashid.infra.cash/api/auth?a=auth&d=&r=i12345689p1234569c12345&x=135621001', // Invalid intent
         'cashid:cashid.infra.cash/api/auth?a=auth&d=&r=c9&x=135621002', // Invalid code "c9"
@@ -25,7 +25,7 @@ describe('# Common', function () {
         'cashid:somedomain/asdfasdf' // Completely fucked
       ]
 
-      assert.throws(() => {
+      assert.throws(function() {
         Common.parseRequest(request)
       }, Error)
     })

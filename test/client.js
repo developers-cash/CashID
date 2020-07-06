@@ -1,22 +1,22 @@
 const assert = require('assert')
 
-const Server = require('../src/server')
-const Client = require('../src/client')
+const { Common, CashIdClient, CashIdServer } = require('../src')
 
 describe('# Client', function () {
-  describe('# createResponse', () => {
-    const server = new Server('cashid.infra.cash', '/api/auth')
+  describe('# createResponse', function() {
+    const client = new CashIdClient('L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+    const server = new CashIdServer('cashid.infra.cash', '/api/auth')
     
-    it('Should throw error if required field missing', () => {
+    it('Should throw error if required field missing', function() {
       const cashIDRequest = server.createRequest('auth', {
         required: ['name', 'family']
       })
 
-      assert.throws(() => {
+      assert.throws(function() {
         // Missing family (lastname)
-        const payload = Client.createResponse(cashIDRequest.request, {
+        const payload = client.createResponse(cashIDRequest.request, {
           name: 'firstname'
-        }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+        })
       }, Error)
     })
   })

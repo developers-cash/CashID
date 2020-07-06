@@ -3,120 +3,128 @@ const assert = require('assert')
 const URL = require('url').URL
 const { Common, CashIdClient, CashIdServer } = require('../src')
 
-describe('# Server', function () {
+describe('# Server', async function() {
+  const client = new CashIdClient('L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
   const server = new CashIdServer('cashid.infra.cash', '/api/auth')
   
-  describe('# createRequest', () => {
-    it('Should not throw error if valid request', () => {
-      const cashIDRequest = server.createRequest('auth', {
+  describe('# createRequest', async function() {
+    it('Should not throw error if valid request', async function() {
+      const cashIDRequest = await server.createRequest('auth', {
         required: ['name', 'family', 'nickname', 'email'],
         optional: ['country', 'state']
       })
     })
   })
 
-  describe('# validateRequest', () => {
-    describe('Success cases', () => {
-      const cashIDRequest = server.createRequest('auth', {
-        required: ['name']
-      })
-
-      const payload = CashIdClient.createResponse(cashIDRequest.request, {
-        name: 'firstname'
-      }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+  describe('# validateRequest', async function() {
+    describe('Success cases', async function() {
       
-      let result = server.validateRequest(payload)
+      let cashIDRequest = null
+      let payload = null
+      let result = null
+      
+      before(async function () {
+        cashIDRequest = await server.createRequest('auth', {
+          required: ['name']
+        })
 
-      it('Should return nonce (result.nonce)', () => {
-        assert.equal(typeof result.nonce, 'string')
+        payload = client.createResponse(cashIDRequest.request, {
+          name: 'firstname'
+        })
+        
+        result = await server.validateRequest(payload)
+      });
+
+      it('Should return nonce (result.nonce)', function() {
+        return assert.equal(typeof result.nonce, 'string')
       })
       
-      it('Should return request (result.request)', () => {
+      it('Should return request (result.request)', function() {
         assert.equal(typeof result.request, 'string')
       })
       
-      it('Should return created timestamp (result.timestamp)', () => {
+      it('Should return created timestamp (result.timestamp)', function() {
         assert.equal(result.timestamp instanceof Date, true)
       })
       
-      it('Should return success status (result.status === 0)', () => {
+      it('Should return success status (result.status === 0)', function() {
         assert.equal(result.status, 0)
       })
       
-      it('Should return consumed timestamp (result.consumed)', () => {
+      it('Should return consumed timestamp (result.consumed)', function() {
         assert.equal(result.consumed instanceof Date, true)
       })
       
-      it('Should return payload object (result.payload)', () => {
+      it('Should return payload object (result.payload)', function() {
         assert.equal(typeof result.payload, 'object')
       })
     })
     
-    describe('Fail cases', () => {
-      it('Should throw ResponseBroken if payload is not an object', () => {
-        assert.throws(() => {
-          server.validateRequest("FullFuckedPayload")
+    describe('Fail cases', function() {
+      it('Should throw ResponseBroken if payload is not an object', async function() {
+        return assert.rejects(async function() {
+          await server.validateRequest("FullFuckedPayload")
         }, {
           name: 'ResponseBroken'
         })
       })
       
-      it('Should throw ResponseMissingAddress if missing address', () => {
-        const cashIDRequest = server.createRequest('auth', {
+      it('Should throw ResponseMissingAddress if missing address', async function() {
+        const cashIDRequest = await server.createRequest('auth', {
           required: ['name']
         })
 
-        const payload = CashIdClient.createResponse(cashIDRequest.request, {
+        const payload = client.createResponse(cashIDRequest.request, {
           name: 'firstname'
-        }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+        })
         
         delete payload.address
         
-        assert.throws(() => {
-          server.validateRequest(payload)
+        assert.rejects(async function() {
+          await server.validateRequest(payload)
         }, {
           name: 'ResponseMissingAddress'
         })
       })
       
-      it('Should throw ResponseMalformedAddress if address is not a CashAddr', () => {
-        const cashIDRequest = server.createRequest('auth', {
+      it('Should throw ResponseMalformedAddress if address is not a CashAddr', async function() {
+        const cashIDRequest = await server.createRequest('auth', {
           required: ['name']
         })
 
-        const payload = CashIdClient.createResponse(cashIDRequest.request, {
+        const payload = client.createResponse(cashIDRequest.request, {
           name: 'firstname'
-        }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+        })
         
         payload.address = "abcde12345"
         
-        assert.throws(() => {
-          server.validateRequest(payload)
+        assert.rejects(async function() {
+          await server.validateRequest(payload)
         }, {
           name: 'ResponseMalformedAddress'
         })
       })
       
-      it('Should throw ResponseMissingSignature if missing signature', () => {
-        const cashIDRequest = server.createRequest('auth', {
+      it('Should throw ResponseMissingSignature if missing signature', async function() {
+        const cashIDRequest = await server.createRequest('auth', {
           required: ['name']
         })
 
-        const payload = CashIdClient.createResponse(cashIDRequest.request, {
+        const payload = client.createResponse(cashIDRequest.request, {
           name: 'firstname'
-        }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+        })
         
         delete payload.signature
         
-        assert.throws(() => {
-          server.validateRequest(payload)
+        assert.rejects(async function() {
+          await server.validateRequest(payload)
         }, {
           name: 'ResponseMissingSignature'
         })
       })
       
-      it('Should throw RequestInvalidNonce if nonce does not exist', () => {
-        const cashIDRequest = server.createRequest('auth', {
+      it('Should throw RequestInvalidNonce if nonce does not exist', async function() {
+        const cashIDRequest = await server.createRequest('auth', {
           required: ['name']
         })
         
@@ -124,19 +132,19 @@ describe('# Server', function () {
         let modifiedRequest = new URL(cashIDRequest.request)
         modifiedRequest.searchParams.set('x', '1000000')
 
-        const payload = CashIdClient.createResponse(modifiedRequest.href, {
+        const payload = client.createResponse(modifiedRequest.href, {
           name: 'firstname'
-        }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+        })
 
-        assert.throws(() => {
-          server.validateRequest(payload)
+        assert.rejects(async function() {
+          await server.validateRequest(payload)
         }, {
           name: 'RequestInvalidNonce'
         })
       })
       
-      it('Should throw RequestAltered if request altered', () => {
-        const cashIDRequest = server.createRequest('auth', {
+      it('Should throw RequestAltered if request altered', async function() {
+        const cashIDRequest = await server.createRequest('auth', {
           required: ['name']
         })
         
@@ -144,73 +152,73 @@ describe('# Server', function () {
         let modifiedRequest = new URL(cashIDRequest.request)
         modifiedRequest.searchParams.set('o', 'c1')
 
-        const payload = CashIdClient.createResponse(modifiedRequest.href, {
+        const payload = client.createResponse(modifiedRequest.href, {
           name: 'firstname'
-        }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+        })
 
-        assert.throws(() => {
-          server.validateRequest(payload)
+        assert.rejects(async function() {
+          await server.validateRequest(payload)
         }, {
           name: 'RequestAltered'
         })
       })
       
-      it('Should throw RequestConsumed if request already consumed', () => {
-        const cashIDRequest = server.createRequest('auth', {
+      it('Should throw RequestConsumed if request already consumed', async function() {
+        const cashIDRequest = await server.createRequest('auth', {
           required: ['name']
         })
 
-        const payload = CashIdClient.createResponse(cashIDRequest.request, {
+        const payload = client.createResponse(cashIDRequest.request, {
           name: 'firstname'
-        }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+        })
 
         // Send first payload
-        server.validateRequest(payload)
+        await server.validateRequest(payload)
         
         // Then try resending
-        assert.throws(() => {
-          server.validateRequest(payload)
+        assert.rejects(async function() {
+          await server.validateRequest(payload)
         }, {
           name: 'RequestConsumed'
         })
       })
 
-      it('Should throw ResponseInvalidSignature if signature invalid', () => {
-        const cashIDRequest = server.createRequest('auth', {
+      it('Should throw ResponseInvalidSignature if signature invalid', async function() {
+        const cashIDRequest = await server.createRequest('auth', {
           required: ['name']
         })
 
-        const payload = CashIdClient.createResponse(cashIDRequest.request, {
+        const payload = client.createResponse(cashIDRequest.request, {
           name: 'firstname'
-        }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+        })
 
         // Overwrite signature
         payload.signature = 'IIGPrv2ZzPN0HHAtrxAiaZHDm0Elxx95hGbbAYhVw3v+TDy2UQnOf7djuQLjnRJ0fd0T/EcKDEBAFBqKi8cSyfc='
 
-        assert.throws(() => {
-          server.validateRequest(payload)
+        assert.rejects(async function() {
+          await server.validateRequest(payload)
         }, {
           name: 'ResponseInvalidSignature'
         })
       })
 
-      it('Should throw ResponseMissingMetadata if required field missing', () => {
+      it('Should throw ResponseMissingMetadata if required field missing', async function() {
         const server = new CashIdServer('test', 'test')
 
-        const cashIDRequest = server.createRequest('auth', {
+        const cashIDRequest = await server.createRequest('auth', {
           required: ['name', 'family']
         })
 
-        const payload = CashIdClient.createResponse(cashIDRequest.request, {
+        const payload = client.createResponse(cashIDRequest.request, {
           name: 'firstname',
           family: 'lastname'
-        }, 'L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')
+        })
 
         // Delete family (last name) field from payload
         delete payload.metadata.family
         
-        assert.throws(() => {
-          server.validateRequest(payload)
+        assert.rejects(async function() {
+          await server.validateRequest(payload)
         }, { 
           name: 'ResponseMissingMetadata'
         })

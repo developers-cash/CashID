@@ -20,7 +20,7 @@ class CashIdServer {
    * // let redisClient = redis.createClient()
    * let cashId = new CashIDServer('cashid.infra.cash', '/api/auth', redisClient)
    */
-  constructor (domain, path, adapter = null) {
+  constructor (domain, path, adapter) {
     this.domain = domain || 'auth.cashid.org'
     this.path = path || '/api/auth'
 
@@ -28,13 +28,13 @@ class CashIdServer {
       this._requests = new Map()
 
       this.adapter = {
-        set: (nonce, data) => {
+        set: async (nonce, data) => {
           this._requests[nonce] = data
         },
-        get: (nonce) => {
+        get: async (nonce) => {
           return this._requests[nonce]
         },
-        del: (nonce) => {
+        del: async (nonce) => {
           delete this._requests[nonce]
         }
       }
@@ -62,7 +62,7 @@ class CashIdServer {
    * // }
    * @returns {Object} Data that was stored in adapter
    */
-  createRequest (action = 'auth', metadata = {}, data = '') {
+  async createRequest (action = 'auth', metadata = {}, data = '') {
     // Create URL for holding request
     const url = new URL(`cashid:${this.domain}${this.path}`)
 
@@ -93,7 +93,7 @@ class CashIdServer {
       request: url.href,
       timestamp: new Date()
     }
-    this.adapter.set(nonce, storedRequest)
+    await this.adapter.set(nonce, storedRequest)
 
     return Object.assign({
       nonce: nonce
@@ -122,7 +122,7 @@ class CashIdServer {
    * // }
    * @returns {Object} Data that was stored in adapter
    */
-  validateRequest (payload) {
+  async validateRequest (payload) {
     // Make sure payload is JSON
     if (typeof payload !== 'object') {
       throw Common._buildError('ResponseBroken')
@@ -133,25 +133,28 @@ class CashIdServer {
       throw Common._buildError('ResponseMissingRequest')
     }
 
+    // Parse the request as early as possible so we have the nonce
+    const parsed = Common.parseRequest(payload.request)
+
     // Make sure payload contains an address
     if (!payload.address) {
-      throw Common._buildError('ResponseMissingAddress')
+      throw Common._buildError('ResponseMissingAddress', { nonce: parsed.nonce })
     }
 
     // Make sure the address is a CashAddr
     try {
       libCash.Address.isCashAddress(payload.address)
+      if (payload.address.includes('bitcoincash:')) {
+        throw new Error('Address should not contain "bitcoincash:" prefix')
+      }
     } catch (err) {
-      throw Common._buildError('ResponseMalformedAddress')
+      throw Common._buildError('ResponseMalformedAddress', { nonce: parsed.nonce })
     }
 
     // Make sure payload contains an address
     if (!payload.signature) {
-      throw Common._buildError('ResponseMissingSignature')
+      throw Common._buildError('ResponseMissingSignature', { nonce: parsed.nonce })
     }
-
-    // Parse the request
-    const parsed = Common.parseRequest(payload.request)
 
     // Declare if user-initiated request and declare original request
     const userInitiated = !['auth', 'login'].includes(parsed.action)
@@ -160,21 +163,21 @@ class CashIdServer {
     // If this is NOT a user-initiated request (i.e. action is "auth")...
     if (!userInitiated) {
       // Find the original based on nonce
-      storedRequest = this.adapter.get(parsed.nonce)
+      storedRequest = await this.adapter.get(parsed.nonce)
 
       // If it doesn't exist, throw error
       if (!storedRequest) {
-        throw Common._buildError('RequestInvalidNonce')
+        throw Common._buildError('RequestInvalidNonce', { nonce: parsed.nonce })
       }
 
       // If it's been altered, throw error
       if (payload.request !== storedRequest.request) {
-        throw Common._buildError('RequestAltered')
+        throw Common._buildError('RequestAltered', { nonce: parsed.nonce })
       }
 
       // If it's been consumed, throw error
       if (storedRequest.consumed) {
-        throw Common._buildError('RequestConsumed')
+        throw Common._buildError('RequestConsumed', { nonce: parsed.nonce })
       }
     }
 
@@ -200,7 +203,7 @@ class CashIdServer {
     }
 
     if (missingFields.length) {
-      throw Common._buildError('ResponseMissingMetadata', missingFields)
+      throw Common._buildError('ResponseMissingMetadata', { nonce: parsed.nonce, fields: missingFields })
     }
 
     // Mark the original request as consumed
@@ -208,7 +211,7 @@ class CashIdServer {
       storedRequest.status = Common.StatusCodes.AuthenticationSuccessful
       storedRequest.consumed = new Date()
       storedRequest.payload = payload
-      this.adapter.set(payload.nonce, storedRequest)
+      await this.adapter.set(payload.nonce, storedRequest)
     }
 
     // If we made it through return success

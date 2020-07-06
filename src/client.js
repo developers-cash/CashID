@@ -4,11 +4,15 @@ const LibCash = require('@developers.cash/libcash-js')
 const libCash = new LibCash()
 
 class CashIdClient {
-  static parseRequest (requestURL) {
+  constructor (wif) {
+    this.wif = wif
+  }
+
+  parseRequest (requestURL) {
     return Common.parseRequest(requestURL)
   }
 
-  static createResponse (requestURL, metadata, wif = null) {
+  createResponse (requestURL, metadata) {
     // Construct response object
     const response = {
       request: requestURL,
@@ -32,17 +36,11 @@ class CashIdClient {
       throw new Error(`Missing required fields specified in request: ${missingFields.join(',')}`)
     }
 
-    if (wif) {
-      const ecPair = libCash.ECPair.fromWIF(wif)
-      response.address = libCash.ECPair.toCashAddress(ecPair)
-      response.signature = libCash.BitcoinCash.signMessageWithPrivKey(wif, response.request)
-    }
+    const ecPair = libCash.ECPair.fromWIF(this.wif)
+    response.address = libCash.ECPair.toCashAddress(ecPair).replace('bitcoincash:', '')
+    response.signature = libCash.BitcoinCash.signMessageWithPrivKey(this.wif, response.request)
 
     return response
-  }
-
-  static signRequest (request, wif) {
-    return libCash.signMessageWithPrivKey(wif, request)
   }
 }
 
