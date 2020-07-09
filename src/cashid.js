@@ -1,5 +1,3 @@
-const URL = require('url').URL
-
 class CashId {
   static getStatusCode (name) {
     const statusCodes = {

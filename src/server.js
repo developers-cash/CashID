@@ -1,5 +1,3 @@
-const URL = require('url').URL
-
 const CashId = require('./cashid')
 
 const LibCash = require('@developers.cash/libcash-js')

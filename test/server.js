@@ -1,6 +1,5 @@
 const assert = require('assert')
 
-const URL = require('url').URL
 const { CashId, CashIdClient, CashIdServer } = require('../src')
 
 describe('# Server', async function() {
