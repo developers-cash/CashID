@@ -1,7 +1,7 @@
 const assert = require('assert')
 
 const URL = require('url').URL
-const { Common, CashIdClient, CashIdServer } = require('../src')
+const { CashId, CashIdClient, CashIdServer } = require('../src')
 
 describe('# Server', async function() {
   const client = new CashIdClient('L5GPEGxCmojgzFoBLUUqT2GegLGqobiYhTZzfLtpkLTfTb9E9NRn')

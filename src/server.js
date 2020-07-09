@@ -1,6 +1,6 @@
 const URL = require('url').URL
 
-const Common = require('./common')
+const CashId = require('./cashid')
 
 const LibCash = require('@developers.cash/libcash-js')
 const libCash = new LibCash()
@@ -125,20 +125,20 @@ class CashIdServer {
   async validateRequest (payload) {
     // Make sure payload is JSON
     if (typeof payload !== 'object') {
-      throw Common._buildError('ResponseBroken')
+      throw CashId._buildError('ResponseBroken')
     }
 
     // Make sure payload contains request
     if (!payload.request) {
-      throw Common._buildError('ResponseMissingRequest')
+      throw CashId._buildError('ResponseMissingRequest')
     }
 
     // Parse the request as early as possible so we have the nonce
-    const parsed = Common.parseRequest(payload.request)
+    const parsed = CashId.parseRequest(payload.request)
 
     // Make sure payload contains an address
     if (!payload.address) {
-      throw Common._buildError('ResponseMissingAddress', { nonce: parsed.nonce })
+      throw CashId._buildError('ResponseMissingAddress', { nonce: parsed.nonce })
     }
 
     // Make sure the address is a CashAddr
@@ -148,12 +148,12 @@ class CashIdServer {
         throw new Error('Address should not contain "bitcoincash:" prefix')
       }
     } catch (err) {
-      throw Common._buildError('ResponseMalformedAddress', { nonce: parsed.nonce })
+      throw CashId._buildError('ResponseMalformedAddress', { nonce: parsed.nonce })
     }
 
     // Make sure payload contains an address
     if (!payload.signature) {
-      throw Common._buildError('ResponseMissingSignature', { nonce: parsed.nonce })
+      throw CashId._buildError('ResponseMissingSignature', { nonce: parsed.nonce })
     }
 
     // Declare if user-initiated request and declare original request
@@ -167,17 +167,17 @@ class CashIdServer {
 
       // If it doesn't exist, throw error
       if (!storedRequest) {
-        throw Common._buildError('RequestInvalidNonce', { nonce: parsed.nonce })
+        throw CashId._buildError('RequestInvalidNonce', { nonce: parsed.nonce })
       }
 
       // If it's been altered, throw error
       if (payload.request !== storedRequest.request) {
-        throw Common._buildError('RequestAltered', { nonce: parsed.nonce })
+        throw CashId._buildError('RequestAltered', { nonce: parsed.nonce })
       }
 
       // If it's been consumed, throw error
       if (storedRequest.consumed) {
-        throw Common._buildError('RequestConsumed', { nonce: parsed.nonce })
+        throw CashId._buildError('RequestConsumed', { nonce: parsed.nonce })
       }
     }
 
@@ -189,7 +189,7 @@ class CashIdServer {
     )
 
     if (!sigValid) {
-      throw Common._buildError('ResponseInvalidSignature')
+      throw CashId._buildError('ResponseInvalidSignature')
     }
 
     // Ensure that all required fields are present
@@ -203,12 +203,12 @@ class CashIdServer {
     }
 
     if (missingFields.length) {
-      throw Common._buildError('ResponseMissingMetadata', { nonce: parsed.nonce, fields: missingFields })
+      throw CashId._buildError('ResponseMissingMetadata', { nonce: parsed.nonce, fields: missingFields })
     }
 
     // Mark the original request as consumed
     if (!userInitiated) {
-      storedRequest.status = Common.StatusCodes.AuthenticationSuccessful
+      storedRequest.status = CashId.getStatusCode('AuthenticationSuccessful')
       storedRequest.consumed = new Date()
       storedRequest.payload = payload
       await this.adapter.set(payload.nonce, storedRequest)

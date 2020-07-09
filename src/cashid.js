@@ -1,36 +1,42 @@
-class Common {
-  static StatusCodes = {
-    AuthenticationSuccessful: 0,
-    RequestBroken: 100,
-    RequestMissingScheme: 111,
-    RequestMissingDomain: 112,
-    RequestMissingNonce: 113,
-    RequestMalformedScheme: 121,
-    RequestMalformedDomain: 122,
-    RequestInvalidDomain: 131,
-    RequestInvalidNonce: 132,
-    RequestAltered: 141,
-    RequestExpired: 142,
-    RequestConsumed: 143,
-    ResponseBroken: 200,
-    ResponseMissingRequest: 211,
-    ResponseMissingAddress: 212,
-    ResponseMissingSignature: 213,
-    ResponseMissingMetadata: 214,
-    ResponseMalformedAddress: 221,
-    ResponseMalformedSignature: 222,
-    ResponseMalformedMetadata: 223,
-    ResponseInvalidMethod: 231,
-    ResponseInvalidAddress: 232,
-    ResponseInvalidSignature: 233,
-    ResponseInvalidMetadata: 234,
-    ServiceBroken: 300,
-    ServiceAddressDenied: 311,
-    ServiceAddressRevoked: 312,
-    ServiceActionDenied: 321,
-    ServiceActionUnavailable: 322,
-    ServiceActionNotImplemented: 323,
-    ServiceInternalError: 331
+const URL = require('url').URL
+
+class CashId {
+  static getStatusCode(name) {
+    const statusCodes = {
+      AuthenticationSuccessful: 0,
+      RequestBroken: 100,
+      RequestMissingScheme: 111,
+      RequestMissingDomain: 112,
+      RequestMissingNonce: 113,
+      RequestMalformedScheme: 121,
+      RequestMalformedDomain: 122,
+      RequestInvalidDomain: 131,
+      RequestInvalidNonce: 132,
+      RequestAltered: 141,
+      RequestExpired: 142,
+      RequestConsumed: 143,
+      ResponseBroken: 200,
+      ResponseMissingRequest: 211,
+      ResponseMissingAddress: 212,
+      ResponseMissingSignature: 213,
+      ResponseMissingMetadata: 214,
+      ResponseMalformedAddress: 221,
+      ResponseMalformedSignature: 222,
+      ResponseMalformedMetadata: 223,
+      ResponseInvalidMethod: 231,
+      ResponseInvalidAddress: 232,
+      ResponseInvalidSignature: 233,
+      ResponseInvalidMetadata: 234,
+      ServiceBroken: 300,
+      ServiceAddressDenied: 311,
+      ServiceAddressRevoked: 312,
+      ServiceActionDenied: 321,
+      ServiceActionUnavailable: 322,
+      ServiceActionNotImplemented: 323,
+      ServiceInternalError: 331
+    }
+    
+    return statusCodes[name]
   }
 
   static parseRequest (requestURL) {
@@ -117,7 +123,7 @@ class Common {
   static _buildError (type, contextData = {}) {
     // Convert error name into human readable
     const humanReadable = type.split(/(?<=[a-z])(?=[A-Z])/).join(' ')
-    let message = `Error ${Common.StatusCodes[type]}: ${humanReadable}`
+    let message = `Error ${CashId.getStatusCode[type]}: ${humanReadable}`
 
     // If this is "responseMissingMetadata", list the fields
     if (contextData.fields) {
@@ -133,4 +139,4 @@ class Common {
   }
 }
 
-module.exports = Common
+module.exports = CashId

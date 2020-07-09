@@ -1,6 +1,6 @@
 const assert = require('assert')
 
-const { Common, CashIdClient, CashIdServer } = require('../src')
+const { CashId, CashIdClient, CashIdServer } = require('../src')
 
 describe('# Client', function () {
   describe('# createResponse', function() {
