@@ -1,7 +1,7 @@
 const URL = require('url').URL
 
 class CashId {
-  static getStatusCode(name) {
+  static getStatusCode (name) {
     const statusCodes = {
       AuthenticationSuccessful: 0,
       RequestBroken: 100,
@@ -35,7 +35,7 @@ class CashId {
       ServiceActionNotImplemented: 323,
       ServiceInternalError: 331
     }
-    
+
     return statusCodes[name]
   }
 
