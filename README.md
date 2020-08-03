@@ -18,40 +18,112 @@ The typical flow might look as follows:
 
 ## Installation
 
-grab from NPM
+Install from NPM
 
 ```sh
-npm install cashid
+npm install @developers-cash/cashid-js
 ```
 
-## Usage
+## Typical Service Implementation
 
-A typical implementation might look as follows:
+A basic server implementation (assuming ExpressJS and a SPA app) might look as follows:
 
 ```javascript
-const CashIDServer = require('cashid').Server
+// Include
+const { CashId, CashIdServer } = require('@developers-cash/cashid-js')
 
-// Instantiate server
-const cashID = new CashIDServer("your.host.com", '/cashid/auth')
+// Instantiate CashID Server
+const cashIdServer = new CashIdServer('example.com', '/cashid')
 
 //
 // Route: /cashid/create-request
+// We need to generate a new nonce for each request.
+// Additionally, we use SSE to listen for events.
 //
-const uri = cashID.createRequest("auth", {
-  required: ['name', 'family', 'email']
+app.get('/cashid', async (req, res) => {
+  try {
+    const request = cashIdServer.createRequest({ // Options
+      action: 'auth',
+      required: ['name', 'family', 'email']
+    }, { // Extra data to store
+      sseSocket: res // Store socket so we can send auth event back to browser
+    })
+    
+    // Let client know it's an SSE (event-stream)
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive'
+    })
+    
+    return res.send(JSON.stringify({
+      event: 'created',
+      url: request.request
+    }) + '\n')
+  } catch (err) {
+    return res.status(500).send({ message: err.message })
+  }
 })
 
-return uri
-
 //
-// Route: /cashid/auth
+// Route: /cashid/validate-request
+// This is the endpoint your Wallet/IdentityManager will send payload to
 //
-return cashID.validateRequest(payload)
-
-//
-// Route: /cashid/events (recommend to implement using SSE)
-//
+app.post('/cashid', async (req, res) => {
+  try {
+    // Will throw error if fails
+    let storedRequest = cashIdServer.validateRequest(req.body.payload)
+    
+    // TODO Create user and/or Auth/Session token to send to browser
+    const token = 'SOME_TOKEN_TO_AUTH_USER' 
+    
+    // Emit event back to SEE Listener
+    storedReqest.sseSocket.send(JSON.stringify({
+      event: 'authenticated',
+      token: token
+    }) + '\n\n')
+    
+    // Send response to Wallet/Identity Manager
+    return res.status(200).send({ status: 0 })
+  } catch (err) {
+    return res.status(200).send({ status: err.code, message: err.message })
+  }
+})
 ```
+
+The corresponding client-side code may look something like the following:
+
+```html
+<a id="cashid-link">Login with CashID</a>
+
+<script>
+  // Make sure EventSource (SSE) is supported
+  if (window.EventSource) {
+    var source = new EventSource('/cashid')
+
+    source.addEventListener('message', function(e) {
+      // Parse message
+      let msg = JSON.parse(e.data)
+      
+      // If this is an authentication request
+      if (msg.type = 'authenticate') {
+        // TODO Render QR Code
+        document.getElementById('cashid-link').setAttribute('href', msg.url)
+      }
+      
+      // If this is an authenticated event
+      if (msg.type === 'authenticated') {
+        // TODO Store token and set UI into logged-in state
+        alert('You are now authenticated')
+      }
+    }, false)
+  }
+</script>
+```
+
+### Notes
+
+- The above server examples will not work correctly behind a Load Balancer as the Socket cannot be shared across servers. Perhaps look at using Redis Storage and its PubSub feature if you need this.
 
 ### Resources
 

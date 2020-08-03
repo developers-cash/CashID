@@ -5,7 +5,7 @@ const libCash = new LibCash()
 
 class CashIdServer {
   /**
-   * constructor
+   * Class for use with CashID Services.
    *
    * @param {String} domain - Dont include http/https in front
    * @param {String} path - API endpoint ie "/api/test"
@@ -32,7 +32,7 @@ class CashIdServer {
         get: async (nonce) => {
           return this._requests[nonce]
         },
-        del: async (nonce) => {
+        delete: async (nonce) => {
           delete this._requests[nonce]
         }
       }
@@ -44,11 +44,15 @@ class CashIdServer {
   /**
    * Creates a CashID request
    *
-   * @param {String} action - The action to be performed (e.g. "auth", "login", etce
-   * @param {Object} metadata - The metadata being requested
-   * @param {String} data - Additional data to pass sign
+   * @param {Object} opts The options for creating the request
+   * @param {String} opts.action The action to be performed (e.g. "auth", "login", etce
+   * @param {Array} opts.required Array of required metadata fields as strings
+   * @param {Array} opts.optional Array of optional metadata fields as string
+   * @param {String} opts.data Data to attach to action
+   * @param {Object} store Extra data to store along with request
    * @example
-   * let cashIdReq = cashId.createRequest('auth', {
+   * let cashIdReq = cashId.createRequest({
+   *   action: 'auth',
    *   required: ['name', 'family'],
    *   optional: ['country']
    * })
@@ -60,41 +64,28 @@ class CashIdServer {
    * // }
    * @returns {Object} Data that was stored in adapter
    */
-  async createRequest (action = 'auth', metadata = {}, data = '') {
-    // Create URL for holding request
-    const url = new URL(`cashid:${this.domain}${this.path}`)
+  async createRequest (opts, store = {}) {
+    // Set domain and path
+    opts.domain = this.domain
+    opts.path = this.path
 
-    // Set action
-    url.searchParams.set('a', action)
-
-    // Set data (only if given)
-    if (data) {
-      url.searchParams.set('d', data)
+    // Create random nonce (if not specified manually)
+    if (!opts.nonce) {
+      opts.nonce = Math.floor(Math.random() * (1 + 999999999 - 0)) + 0
     }
 
-    // Set required fields (only if given)
-    if (metadata.required) {
-      url.searchParams.set('r', CashIdServer._encodeFieldsAsString(metadata.required))
-    }
-
-    // Set optional fields (only if given)
-    if (metadata.optional) {
-      url.searchParams.set('o', CashIdServer._encodeFieldsAsString(metadata.optional))
-    }
-
-    // Set nonce
-    const nonce = Math.floor(Math.random() * (1 + 999999999 - 0)) + 0
-    url.searchParams.set('x', nonce)
+    // Create the CashID URL
+    const url = CashId.createRequestURL(opts)
 
     // Store this request (with a timestamp)
-    const storedRequest = {
-      request: url.href,
+    const storedRequest = Object.assign(store, {
+      request: url,
       timestamp: new Date()
-    }
-    await this.adapter.set(nonce, storedRequest)
+    })
+    await this.adapter.set(opts.nonce, storedRequest)
 
     return Object.assign({
-      nonce: nonce
+      nonce: opts.nonce
     }, storedRequest)
   }
 
@@ -155,11 +146,22 @@ class CashIdServer {
     }
 
     // Declare if user-initiated request and declare original request
-    const userInitiated = !['auth', 'login'].includes(parsed.action)
-    let storedRequest
+    const userInitiated = ['delete', 'revoke', 'logout', 'update'].includes(parsed.action)
 
-    // If this is NOT a user-initiated request (i.e. action is "auth")...
-    if (!userInitiated) {
+    // Default stored request to the parsed request
+    let storedRequest = parsed
+
+    // If this is a user-initiated request...
+    if (userInitiated) {
+      // Treat nonce as a timestamp and make sure within past 15m
+      const currentTime = Math.floor(new Date().getTime() / 1000) + 60 // Accomodate to variance in server-clocks by adding 60s
+      const recentTime = currentTime - 60 * 15
+
+      // If timestamp isn't within 15m window
+      if (parsed.nonce < recentTime || parsed.nonce > currentTime) {
+        throw CashId._buildError('RequestInvalidNonce', { nonce: parsed.nonce })
+      }
+    } else { // If this is a server-generated request (e.g. "auth", "login", etc)
       // Find the original based on nonce
       storedRequest = await this.adapter.get(parsed.nonce)
 
@@ -186,6 +188,7 @@ class CashIdServer {
       payload.request
     )
 
+    // If it's invalid, throw error
     if (!sigValid) {
       throw CashId._buildError('ResponseInvalidSignature')
     }
@@ -200,6 +203,7 @@ class CashIdServer {
       }
     }
 
+    // If some are missing, throw error
     if (missingFields.length) {
       throw CashId._buildError('ResponseMissingMetadata', { nonce: parsed.nonce, fields: missingFields })
     }
@@ -216,59 +220,6 @@ class CashIdServer {
     return Object.assign({
       nonce: parsed.nonce
     }, storedRequest)
-  }
-
-  static _encodeFieldsAsString (fieldArray) {
-    // Constants for array positions below
-    const METADATA_TYPE = 0
-    const METADATA_CODE = 1
-
-    // Map of field names to metadataType+code
-    const map = {
-      name: 'i1',
-      family: 'i2',
-      nickname: 'i3',
-      age: 'i4',
-      gender: 'i5',
-      birthdate: 'i6',
-      picture: 'i8',
-      national: 'i9',
-      country: 'p1',
-      state: 'p2',
-      city: 'p3',
-      streetname: 'p4',
-      streetnumber: 'p5',
-      residence: 'p6',
-      coordinates: 'p9',
-      email: 'c1',
-      instant: 'c2',
-      social: 'c3',
-      phone: 'c4',
-      postal: 'c5'
-    }
-
-    const fields = {}
-
-    for (const field of fieldArray) {
-      // Make sure field is supported
-      if (!map[field]) throw new Error(`Field ${field} is not supported by CashID`)
-
-      // If metadataType does not exist in fields, create it as array
-      if (!fields[map[field][METADATA_TYPE]]) fields[map[field][METADATA_TYPE]] = []
-
-      // Push the code to that field
-      fields[map[field][METADATA_TYPE]].push(map[field][METADATA_CODE])
-    }
-
-    // Convert fields to string
-    let asString = ''
-    for (const metadataType of ['i', 'p', 'c']) {
-      if (fields[metadataType]) {
-        asString += `${metadataType}${fields[metadataType].reduce((codes, code) => code, '')}`
-      }
-    }
-
-    return asString
   }
 }
 

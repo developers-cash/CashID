@@ -4,25 +4,59 @@ const LibCash = require('@developers.cash/libcash-js')
 const libCash = new LibCash()
 
 class CashIdClient {
+  /**
+   * Class for use by CashID clients.
+   *
+   * @param {String} wif Private Key in WIF format
+   * @example
+   * let client = new CashIdClient('L5DwfPuZ3bfrimYwY81ZHaGT76YraS494UDDzSRrv7VdCcNEXJi4')
+   */
   constructor (wif) {
     this.wif = wif
   }
 
-  parseRequest (requestURL) {
-    return CashId.parseRequest(requestURL)
-  }
+  /**
+   * Class for use by CashID clients.
+   *
+   * @param {String|Object} request CashID Request or Object for User-initiated
+   * @example
+   * // Server-initiated
+   * let payload = client.createPayload(requestURL, {
+   *   name: 'Jim'
+   *   // ...
+   * })
+   *
+   * // User-initiated
+   * let payload = client.createPayload({
+   *   domain: 'cashid.infra.cash',
+   *   path: '/api/auth',
+   *   action: 'update'
+   * }, {
+   *   country: 'United States'
+   *   // ...
+   * })
+   */
+  createPayload (request, metadata) {
+    // If it's an object (User-Initiated), then construct request
+    if (typeof request === 'object') {
+      // If a nonce (timestamp) has not been set...
+      if (!request.nonce) {
+        request.nonce = Math.floor(new Date().getTime() / 1000)
+      }
 
-  createResponse (requestURL, metadata) {
+      request = CashId.createRequestURL(request)
+    }
+
     // Construct response object
     const response = {
-      request: requestURL,
+      request: request,
       address: '',
       signature: '',
       metadata: metadata
     }
 
     // Parse the request
-    const parsed = CashId.parseRequest(requestURL)
+    const parsed = CashId.parseRequest(request)
 
     // Make sure all required fields are present
     const missingFields = []
