@@ -194,7 +194,7 @@ class CashId {
     let asString = ''
     for (const metadataType of ['i', 'p', 'c']) {
       if (fields[metadataType]) {
-        asString += `${metadataType}${fields[metadataType].reduce((codes, code) => code, '')}`
+        asString += `${metadataType}${fields[metadataType].reduce((codes, code) => codes + code, '')}`
       }
     }
 

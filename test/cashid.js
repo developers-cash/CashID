@@ -3,6 +3,19 @@ const assert = require('assert')
 const { CashId } = require('../src')
 
 describe('# CashId', function () {
+  describe('# createRequestURL', function() {
+    it('Should include all fields listed', function() {
+      // There was a bug previously
+      const request = CashId.createRequestURL({
+        optional: ['name', 'family', 'nickname', 'country']
+      })
+      
+      const parsed = CashId.parseRequest(request)
+      
+      assert.equal(JSON.stringify(parsed.optional), JSON.stringify(['name', 'family', 'nickname', 'country']))
+    })
+  })
+  
   describe('# parseRequest', function() {
     it('Should not throw error on valid CashID requests', function() {
       const requests = [
